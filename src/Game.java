@@ -1,64 +1,28 @@
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
+package Game;
+import java.util.*;
+
 public class Game {
 
-    private String chosenMap;
-
-    public void startGame() {
-        System.out.println("==================================");
-        System.out.println("\t\tINHERITOR’S RIFT");
-        System.out.println("==================================");
-        System.out.printf("\n\tIn the year 30XX in the country of Kalerios, a sudden rift called the “Singularity” has opened," +
-                "\n\tunleashing unknown mystical creatures to the world. Ever since that day, more rifts have opened," +
-                "\n\tdestroying everything they see, including humanity. In the struggle to fight back," +
-                "\n\thumanity later discovered the power to destroy and seal the rifts. “Inheritors”," +
-                "\n\tthe chosen individuals who have awakened their powers, can wield forgotten mystic arts gained " +
-                "\n\tfrom ancient spirits and have the power to challenge the mystical creatures." +
-                "\n\tYou (player) will lead a group of inheritors to destroy all enemies to seal the rift.\n");
-
-        try {
-            chooseMap();
-            System.out.println("\nPLAYER 1, choose your character:");
-            Player player1 = chooseCharacter();
-
-            System.out.println("\nPLAYER 2, choose your character:");
-            Player player2 = chooseCharacter();
-
-            startBattle(player1, player2);
-        } catch (InvalidChoiceException e) {
-            System.out.println("Error: " + e.getMessage());
-            System.out.println("Restarting game...\n");
-            startGame(); // restart safely
-        } catch (Exception e) {
-            System.out.println("Unexpected error occurred: " + e.getMessage());
-        }
+    public static void main(String[] args) {
+        Game game = new Game();
+        game.start();
     }
 
-
-    public void chooseMap() throws InvalidChoiceException {
-        Scanner scanner = new Scanner(System.in);
-        int choice = 0;
+    public void start() {
+        Scanner input = new Scanner(System.in);
+        System.out.println("=== Welcome to the Turn-Based Game! ===");
 
         try {
-            System.out.println("\nChoose your battlefield:");
-            System.out.println("1. The Whispering Forest (Kagubatang Alitaptap)");
-            System.out.println("2. The Molten Caverns (Yungib ng Apoy)");
-            System.out.println("3. The Abyssal Coast (Dalampasigan ng Multo)");
-            System.out.print("Enter choice (1-3): ");
-            choice = scanner.nextInt();
-        } catch (InputMismatchException e) {
-            throw new InvalidChoiceException("Invalid input type. Please enter a number (1-3).");
+            Player hero = chooseCharacter();
+            Enemy enemy = new Enemy("Kagubatang Halimaw", 300);
+            System.out.println("\n⚔ Battle Start! ⚔");
+            battle(hero, enemy);
+        } catch (InvalidChoiceException e) {
+            System.out.println("Error: " + e.getMessage());
         }
-
-        switch (choice) {
-            case 1 -> chosenMap = "The Whispering Forest";
-            case 2 -> chosenMap = "The Molten Caverns";
-            case 3 -> chosenMap = "The Abyssal Coast";
-            default -> throw new InvalidChoiceException("Invalid map choice! Please choose between 1-3.");
-        }
-
-        System.out.println("You have chosen: " + chosenMap);
     }
 
     public Player chooseCharacter() throws InvalidChoiceException {
@@ -88,10 +52,10 @@ public class Game {
                     new Skill("Heavy Shield", 10, 0),
                     new Skill("Ground Splitter (AOE)", 25, 3),
                     new Skill("Protector", 40, 5));
-            case 3 -> player = new Player("Serenya", 230,
-                    new Skill("Moonlit", 25, 1),
-                    new Skill("Radiance", 0, 3),
-                    new Skill("Eclipse", 0, 4));
+            case 3 -> player = new Player("Serenya", 240,
+                    new Skill("Moonlit", 25, 0),
+                    new Skill("Radiance (Heal 50%)", 0, 1, true),
+                    new Skill("Eclipse (Heal All 30%)", 0, 4, true));
             case 4 -> player = new Player("Targaryen Sikat’thar", 260,
                     new Skill("Inferno", 35, 1),
                     new Skill("Firestorm (AOE)", 43, 2),
@@ -107,82 +71,53 @@ public class Game {
         return player;
     }
 
-    public void startBattle(Player player1, Player player2) {
+    public void battle(Player hero, Enemy enemy) {
         Scanner input = new Scanner(System.in);
+        Random random = new Random();
 
-        System.out.println("\n===== BATTLE START =====");
-        System.out.println(player1.getName() + " (Player 1) VS " + player2.getName() + " (Player 2)");
-        System.out.println("=======================================");
+        while (hero.getHp() > 0 && enemy.getHp() > 0) {
+            System.out.println("\n===== NEW TURN =====");
+            System.out.println(hero.getName() + ": " + hero.getHp() + " HP");
+            System.out.println(enemy.getName() + ": " + enemy.getHp() + " HP");
 
-        int turn = 1;
-        while (player1.getHp() > 0 && player2.getHp() > 0) {
-            System.out.println("\n========= TURN " + turn + " =========");
+            hero.displayInfo();
+            System.out.print("\nChoose skill (1-3): ");
+            int choice = input.nextInt();
+            Skill chosenSkill = null;
 
-            // ===== Player 1's Turn =====
-            System.out.println("\n🟦 " + player1.getName() + "'s Turn!");
-            player1.displayInfo();
-            System.out.print("Choose a skill (1-3): ");
+            if (choice >= 1 && choice <= 3)
+                chosenSkill = hero.previewSkill(choice) != 0 ? hero.useSkill(choice) != 0 ? hero.useSkill(choice) > 0 ? null : null : null : null;
 
-            int skillChoice1;
-            try {
-                skillChoice1 = input.nextInt();
-            } catch (InputMismatchException e) {
-                input.nextLine();
-                System.out.println("Invalid input! Turn skipped.");
-                skillChoice1 = -1;
+            int damage = hero.useSkill(choice);
+
+            // Serenya’s special healing logic
+            if (hero.getName().equals("Serenya")) {
+                switch (choice) {
+                    case 2 -> hero.healPercent(50); // Radiance
+                    case 3 -> hero.healPercent(30); // Eclipse
+                    default -> enemy.takeDamage(damage);
+                }
+            } else {
+                enemy.takeDamage(damage);
             }
 
-            int damage1 = player1.useSkill(skillChoice1);
-            player2.takeDamage(damage1);
-            System.out.println("\n💥 " + player1.getName() + " dealt " + damage1 + " damage to " + player2.getName() + "!");
-            System.out.println(player2.getName() + "'s HP: " + player2.getHp());
-
-            if (player2.getHp() <= 0) {
-                System.out.println("\n💀 " + player2.getName() + " has been defeated!");
+            if (enemy.getHp() <= 0) {
+                System.out.println("\n🎉 " + hero.getName() + " defeated " + enemy.getName() + "!");
                 break;
             }
 
-            // ===== Player 2's Turn =====
-            System.out.println("\n🟥 " + player2.getName() + "'s Turn!");
-            player2.displayInfo();
-            System.out.print("Choose a skill (1-3): ");
+            // Enemy turn
+            int enemyDamage = random.nextInt(20) + 10;
+            System.out.println(enemy.getName() + " attacks and deals " + enemyDamage + " damage!");
+            hero.takeDamage(enemyDamage);
 
-            int skillChoice2;
-            try {
-                skillChoice2 = input.nextInt();
-            } catch (InputMismatchException e) {
-                input.nextLine();
-                System.out.println("Invalid input! Turn skipped.");
-                skillChoice2 = -1;
-            }
-
-            int damage2 = player2.useSkill(skillChoice2);
-            player1.takeDamage(damage2);
-            System.out.println("\n💥 " + player2.getName() + " dealt " + damage2 + " damage to " + player1.getName() + "!");
-            System.out.println(player1.getName() + "'s HP: " + player1.getHp());
-
-            if (player1.getHp() <= 0) {
-                System.out.println("\n💀 " + player1.getName() + " has been defeated!");
+            if (hero.getHp() <= 0) {
+                System.out.println("\n💀 " + hero.getName() + " has fallen in battle!");
                 break;
             }
 
-            // ===== End of Turn Status =====
-            player1.reduceCooldowns();
-            player2.reduceCooldowns();
-
-            System.out.println("\n--- End of Turn " + turn + " ---");
-            System.out.println(player1.getName() + " HP: " + player1.getHp());
-            System.out.println(player2.getName() + " HP: " + player2.getHp());
-            System.out.println("=======================================");
-
-            turn++;
+            // Reduce skill cooldowns
+            hero.reduceCooldowns();
         }
-
-        System.out.println("\n===== BATTLE ENDED =====");
-    }
-
-    public static void main(String[] args) {
-        Game game = new Game();
-        game.startGame();
     }
 }
