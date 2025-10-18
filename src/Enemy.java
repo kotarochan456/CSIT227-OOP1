@@ -1,3 +1,5 @@
+package Game;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,11 +33,9 @@ public class Enemy {
         System.out.println(name + " took " + dmg + " damage! Remaining HP: " + hp);
     }
 
-
     public void reduceCooldowns() {
         for (Skill s : skills) s.reduceCooldown();
     }
-
     public int getHp() { return hp; }
     public String getName() { return name; }
 }
